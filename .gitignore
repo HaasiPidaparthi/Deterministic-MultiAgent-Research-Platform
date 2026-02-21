@@ -1,6 +1,6 @@
 # Conda
 .conda/
-.env/
+.env
 __pycache__/
 *.pyc
 
