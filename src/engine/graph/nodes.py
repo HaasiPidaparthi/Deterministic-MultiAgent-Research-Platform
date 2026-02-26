@@ -15,7 +15,11 @@ def planner_node(agent: PlannerAgent):
         budget_usd = float(state.get("budget_usd", 2.5))
         time_limit_s = int(state.get("time_limit_s", 0))
 
-        plan = agent.plan(question=question, budget_usd=budget_usd, time_limit_s=time_limit_s)
+        plan = agent.plan(
+            question=question, 
+            budget_usd=budget_usd, 
+            time_limit_s=time_limit_s
+        )
         return {"plan": plan}
 
     return _node
@@ -27,7 +31,10 @@ def researcher_node(agent: ResearcherAgent):
     def _node(state: WorkflowState, config: RunnableConfig) -> Dict[str, Any]:
         question = state["question"]
         plan = state["plan"]
-        evidence = agent.research(question=question, search_queries=plan.search_queries)
+        evidence = agent.research(
+            question=question, 
+            search_queries=plan.search_queries
+        )
         return {"evidence": evidence}
 
     return _node
