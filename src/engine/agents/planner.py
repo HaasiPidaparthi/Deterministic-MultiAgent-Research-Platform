@@ -7,6 +7,8 @@ from langchain_core.runnables import Runnable, RunnableLambda
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from engine.schemas.planner import ResearchPlan
+from engine.events.emitter import Emitter
+
 
 PLANNER_SYSTEM = """You are a senior strategy analyst and research planner.
 Your job: turn a vague business question into a research plan that can produce a concise, defensible brief.
@@ -53,12 +55,31 @@ def build_planner_runnable(llm: BaseChatModel) -> Runnable:
 class PlannerAgent:
     llm: BaseChatModel
 
-    def plan(self, question: str, budget_usd: float, time_limit_s: Optional[int] = None) -> ResearchPlan:
+    def plan(
+            self, 
+            question: str, 
+            budget_usd: float, 
+            time_limit_s: Optional[int] = None,
+            emitter: Optional[Emitter] = None,
+        ) -> ResearchPlan:
+        
+        emitter and emitter.emit("AgentStarted", agent="planner", question=question, budget_usd=budget_usd, time_limit_s=time_limit_s)
+
         runnable = build_planner_runnable(self.llm)
-        return runnable.invoke(
+        plan = runnable.invoke(
             {
                 "question": question,
                 "budget_usd": budget_usd,
                 "time_limit_s": time_limit_s or 0,
             }
         )
+
+        emitter and emitter.emit(
+            "PlanCreated",
+            agent="planner",
+            subquestions_count=len(plan.subquestions),
+            search_queries_count=len(plan.search_queries),
+            assumptions_count=len(plan.assumptions),
+        )
+        emitter and emitter.emit("AgentFinished", agent="planner")
+        return plan

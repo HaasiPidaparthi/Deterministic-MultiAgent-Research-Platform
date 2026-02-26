@@ -3,6 +3,9 @@ from langchain_core.messages import AIMessage
 
 from engine.agents.planner import PlannerAgent, ResearchPlan
 from engine.graph.nodes import planner_node
+from engine.events.sink import InMemorySink
+from engine.events.emitter import Emitter
+import uuid
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -93,3 +96,16 @@ def test_assumptions_accept_strings_or_objects():
     }
     plan2 = ResearchPlan.model_validate(data_objs)
     assert plan2.assumptions[0].rationale == "R0001"
+
+def test_planner_emits_events():
+    sink = InMemorySink()
+    emitter = Emitter(sink, run_id=str(uuid.uuid4()))
+
+    llm = FakeMessagesListChatModel(responses=[AIMessage(content=PLAN_JSON)])
+    agent = PlannerAgent(llm=llm)
+    plan = agent.plan("q", 1.0, 60, emitter=emitter)
+
+    types = [e.type for e in sink.events]
+    assert "AgentStarted" in types
+    assert "PlanCreated" in types
+    assert "AgentFinished" in types
