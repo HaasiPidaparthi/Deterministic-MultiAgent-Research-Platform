@@ -2,12 +2,12 @@ from typing import List, Optional, Union
 from pydantic import BaseModel, Field, ConfigDict
 
 class StopCriteria(BaseModel):
-    min_sources: int = Field(default=8, ge=1, description="Minimum distinct sources to collect")
+    min_sources: int = Field(default=5, ge=1, description="Minimum distinct sources to collect")
     min_claim_coverage: float = Field(default=0.85, ge=0.0, le=1.0, description="Fraction of claims supported by evidence")
     max_minutes: Optional[int] = Field(default=None, ge=1, description="Optional time cap for research stage")
 
 class SubQuestion(BaseModel):
-    question: str = Field(min_length=5)
+    question: str = Field(min_length=1)
     search_queries: List[str] = Field(default_factory=list, min_length=0, max_length=50)
 
 class Assumption(BaseModel):

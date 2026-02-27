@@ -12,8 +12,8 @@ FetchFn = Any
 
 @dataclass
 class ResearcherConfig:
-    max_results_per_query: int = 5
-    max_sources_total: int = 12
+    max_results_per_query: int = 3
+    max_sources_total: int = 5
     min_reliability: float = 0.4
 
 @dataclass
