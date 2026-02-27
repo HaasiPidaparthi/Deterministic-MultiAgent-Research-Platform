@@ -66,7 +66,11 @@ def test_researcher_emits_events():
     agent = ResearcherAgent(
         web_search=web_search,
         fetch_url=fetch_url,
-        cfg=ResearcherConfig(max_results_per_query=3, max_sources_total=5, min_reliability=0.0),
+        cfg=ResearcherConfig(
+            max_results_per_query=3, 
+            max_sources_total=5, 
+            min_reliability=0.0
+        ),
     )
 
     evidence = agent.research(

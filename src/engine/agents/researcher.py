@@ -3,7 +3,7 @@ from typing import List, Set, Any
 
 from engine.schemas.evidence import EvidenceItem
 from engine.tools.web_types import SearchResult, FetchResult
-from engine.tools.extract import hash_text, reliability_score, relevance_score
+from engine.tools.extract import hash_text, reliability_score, relevance_score_embed
 from engine.events.emitter import Emitter
 
 # Accepts plain callable or LangChain Tool object with .invoke()
@@ -15,6 +15,8 @@ class ResearcherConfig:
     max_results_per_query: int = 3
     max_sources_total: int = 5
     min_reliability: float = 0.4
+    embedding_model: str = "nomic-embed-text"
+    min_relevance: float = 0.20
 
 @dataclass
 class ResearcherAgent:
@@ -61,23 +63,47 @@ class ResearcherAgent:
             if emitter:
                 emitter and emitter.emit("ToolCallFailed", agent="researcher", tool="fetch_url", url=url, error=str(e))
             raise
+    
+    def _reject(self, emitter, url: str, reason: str, **data):
+        if emitter:
+            emitter.emit(
+                "EvidenceItemRejected",
+                agent="researcher",
+                url=url,
+                reason=reason,
+                **data,
+            )
+
 
     def research(self, question: str, search_queries: List[str], emitter=None) -> List[EvidenceItem]:
         """
         Executes search + fetch to produce deduped EvidenceItems.
+        Applies reliability + embedding-based relevance scoring.
         """
         if emitter:
             emitter and emitter.emit("AgentStarted", agent="researcher", question=question, queries_count=len(search_queries))
 
+        # Use query context for relevance embedding
+        query_context = (question or "").strip()
+        if search_queries:
+            query_context = query_context + "\n\nSearch queries:\n" + "\n".join(search_queries)
+
         # 1) search -> candidate urls
         candidates: List[SearchResult] = []
         seen_urls: Set[str] = set()
+        rejected = 0
 
         for q in search_queries:
             raw_result = self._call_search(q, emitter=emitter)
             for r in raw_result[: self.cfg.max_results_per_query]:
                 sr = SearchResult.model_validate(r)
-                if not sr.url or sr.url in seen_urls:
+                if not sr.url:
+                    self._reject(emitter, "", reason="missing_url", query=q)
+                    rejected += 1
+                    continue
+                if sr.url in seen_urls:
+                    self._reject(emitter, sr.url, reason="duplicate_url", query=q)
+                    rejected += 1
                     continue
                 seen_urls.add(sr.url)
                 candidates.append(sr)
@@ -93,19 +119,41 @@ class ResearcherAgent:
             
             fetched = self._call_fetch(c.url, emitter=emitter)
             fr = FetchResult.model_validate(fetched)
-            if fr.status_code >= 400 or not fr.text or not fr.text.strip():
+
+            if fr.status_code >= 400:
+                self._reject(emitter, c.url, reason="fetch_http_error", status_code=fr.status_code) 
+                rejected += 1
+                continue
+            
+            if not fr.text or not fr.text.strip():
+                self._reject(emitter, c.url, reason="fetch_empty_text", status_code=fr.status_code)
+                rejected += 1
                 continue
 
             content_h = hash_text(fr.text)
             if content_h in seen_hashes:
+                self._reject(emitter, c.url, reason="duplicate_content", content_hash=content_h)
+                rejected += 1
                 continue
             seen_hashes.add(content_h)
 
             rel = reliability_score(fr.url)
             if rel < self.cfg.min_reliability:
+                self._reject(emitter, c.url, reason="low_reliability", reliability=rel, min_reliability=self.cfg.min_reliability)
+                rejected += 1
                 continue
 
-            rev = relevance_score(question, fr.text, fr.title or c.title)
+            rev = relevance_score_embed(
+                question=query_context,
+                text=fr.text,
+                title=fr.title or c.title,
+                model=self.cfg.embedding_model,
+            )
+            if rev < self.cfg.min_relevance:
+                self._reject(emitter, c.url, reason="low_relevance", relevance=rev, min_relevance=self.cfg.min_relevance)
+                rejected += 1
+                continue
+            
             snippet = (c.snippet or fr.text[:280]).strip().replace("\n", " ")
 
             item = EvidenceItem(
@@ -141,6 +189,7 @@ class ResearcherAgent:
             agent="researcher",
             candidates_count=len(candidates),
             evidence_count=len(evidence),
+            rejected_count=rejected,
         )
         emitter and emitter.emit("AgentFinished", agent="researcher")
 

@@ -16,6 +16,7 @@ EventType = Literal[
     "ToolCallFailed",
     "PlanCreated",
     "EvidenceItemCreated",
+    "EvidenceItemRejected",
     "ResearchCompleted",
 ]
 

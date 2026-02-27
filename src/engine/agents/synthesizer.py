@@ -29,6 +29,7 @@ Rules:
 - Do NOT include any additional keys.
 - Every item in key_findings and risks MUST include citations as evidence IDs like ["S1","S2"].
 - Citations must be separate fields, not embedded in text.
+- Set confidence to 0.0 for all claims.
 - Use ONLY provided evidence. If unsupported, put it in limitations.
 
 Output JSON only.

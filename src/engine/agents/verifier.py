@@ -6,11 +6,13 @@ from engine.schemas.brief import BriefDraft, Claim
 from engine.schemas.evidence import EvidenceItem
 from engine.schemas.planner import ResearchPlan
 from engine.events.emitter import Emitter
+from engine.tools.extract import claim_confidence_embed
 
 
 @dataclass
 class VerifierConfig:
     min_reliability_required: float = 0.5
+    embedding_model: str = "nomic-embed-text"
 
 
 @dataclass
@@ -46,35 +48,51 @@ class VerifierAgent:
 
         for loc, claim in claims:
             cits = claim.citations or []
-            if len(cits) == 0:
-                issues.append(
-                    VerificationIssue(
-                        severity="error",
-                        code="MISSING_CITATION",
-                        message="Claim has no citations.",
-                        location=loc,
-                    )
-                )
-                continue
 
-            cited_claim_count += 1
+            # Missing citations
+            if not cits:
+                issues.append(VerificationIssue(
+                    severity="error",
+                    code="MISSING_CITATION",
+                    message="Claim has no citations.",
+                    location=loc,
+                ))
+                claim.confidence = 0.2
+                continue
 
             # Validate citations exist
             missing = [cid for cid in cits if cid not in evidence_ids]
             if missing:
-                issues.append(
-                    VerificationIssue(
+                issues.append(VerificationIssue(
                         severity="error",
                         code="INVALID_CITATION",
                         message=f"Citations not found in evidence: {missing}",
                         location=loc,
                         evidence_ids=cits,
-                    )
-                )
-            for cid in cits:
-                if cid in evidence_by_id:
-                    sources_used_ids.add(cid)
-                    min_rel_observed = min(min_rel_observed, evidence_by_id[cid].reliability_score)
+                ))
+            
+            # Count valid citations for coverage and scoring
+            valid_cits = [cid for cid in cits if cid in evidence_ids]
+            if valid_cits:
+                cited_claim_count += 1
+
+            # Gather cited evidence texts + rel scores
+            cited_texts = []
+            cited_rels = []
+            for cid in valid_cits:
+                ei = evidence_by_id.get(cid)
+                cited_rels.append(float(ei.reliability_score))
+                cited_texts.append(f"{ei.title or ''}\n{ei.snippet or ''}".strip())
+                sources_used_ids.add(cid)
+                min_rel_observed = min(min_rel_observed, ei.reliability_score)
+            
+            # overwrite model-provided confidence
+            claim.confidence = claim_confidence_embed(
+                claim_text=claim.text,
+                cited_texts=cited_texts,
+                cited_reliabilities=cited_rels,
+                model=getattr(self.cfg, "embedding_model", "nomic-embed-text"),
+            )
 
         # Stop criteria
         min_sources_required = getattr(getattr(plan, "stop_criteria", None), "min_sources", 0) or 0
