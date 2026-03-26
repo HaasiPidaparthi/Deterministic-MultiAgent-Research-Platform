@@ -1,3 +1,11 @@
+"""Verification agent for validating research claims and evidence quality.
+
+This module contains the VerifierAgent class, which is responsible for verifying
+the quality and validity of research briefs by checking citations, evidence
+reliability, and claim coverage. The agent validates that claims are properly
+supported by evidence and meets quality thresholds defined in the research plan.
+"""
+
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set
 
@@ -11,12 +19,32 @@ from engine.tools.extract import claim_confidence_embed
 
 @dataclass
 class VerifierConfig:
+    """Configuration settings for the verification agent.
+
+    Defines thresholds and parameters used by the VerifierAgent to evaluate
+    the quality and validity of research briefs and evidence.
+
+    Attributes:
+        min_reliability_required: Minimum reliability score required for cited evidence.
+        embedding_model: Name of the embedding model used for claim confidence scoring.
+        evidence_quality_threshold: Threshold below which evidence quality triggers refetch.
+    """
     min_reliability_required: float = 0.5
     embedding_model: str = "nomic-embed-text"
+    evidence_quality_threshold: float = 0.6  # threshold for low-quality evidence to trigger refetch
 
 
 @dataclass
 class VerifierAgent:
+    """Agent responsible for verifying the quality and validity of research briefs.
+
+    This agent validates that claims in the brief are properly supported by evidence,
+    checks citation validity, assesses evidence reliability, and ensures the brief
+    meets quality thresholds defined in the research plan.
+
+    Attributes:
+        cfg: Configuration settings for verification parameters and thresholds.
+    """
     cfg: VerifierConfig = field(default_factory=VerifierConfig())
 
     def verify(
@@ -26,6 +54,25 @@ class VerifierAgent:
         brief: BriefDraft,
         emitter: Optional[Emitter] = None,
     ) -> VerificationReport:
+        """Verify the quality and validity of a research brief.
+
+        Performs comprehensive validation of the brief including:
+        - Citation validity and existence
+        - Evidence reliability assessment
+        - Claim coverage and support
+        - Compliance with plan requirements (min sources, coverage thresholds)
+        - Confidence scoring for claims using embedding similarity
+
+        Args:
+            plan: The research plan containing stop criteria and requirements.
+            evidence: List of evidence items available for citation validation.
+            brief: The brief draft to be verified.
+            emitter: Optional event emitter for logging verification progress.
+
+        Returns:
+            A VerificationReport containing the verification results, including
+            pass/fail status, coverage metrics, identified issues, and quality scores.
+        """
         emitter and emitter.emit("AgentStarted", agent="verifier")
 
         evidence_by_id: Dict[str, EvidenceItem] = {e.id: e for e in evidence}

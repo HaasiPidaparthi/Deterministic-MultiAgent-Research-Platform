@@ -1,0 +1,30 @@
+# Configuration file for the Deterministic Multi-Agent Workflow Orchestrator
+# This file allows users to customize the workflow parameters without modifying code
+
+# Research question to analyze
+question: "Should we enter the SMB payroll market?"
+
+# Budget and time constraints
+budget_usd: 2500000
+time_limit_seconds: 180
+
+# LLM Configuration
+llm:
+  planner_model: "llama-3.3-70b-versatile"
+  synthesizer_model: "llama-3.3-70b-versatile"
+  temperature: 0
+
+# Researcher Agent Configuration
+researcher:
+  max_results_per_query: 5
+  max_sources_total: 5
+  min_reliability: 0.4
+
+# Verifier Agent Configuration
+verifier:
+  min_reliability_required: 0.5
+
+# Workflow Settings
+workflow:
+  max_iterations: 5  # Maximum number of workflow iterations
+  synthesizer_mode: "normal"  # normal or strict mode for synthesis

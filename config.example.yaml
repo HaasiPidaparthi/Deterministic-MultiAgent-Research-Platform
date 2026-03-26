@@ -1,0 +1,30 @@
+# Example configuration file for the Deterministic Multi-Agent Workflow Orchestrator
+# Copy this file and customize the values for your specific use case
+
+# Research question to analyze
+question: "What are the market opportunities for AI-powered customer service solutions?"
+
+# Budget and time constraints (in USD and seconds)
+budget_usd: 5000000
+time_limit_seconds: 300
+
+# LLM Configuration
+llm:
+  planner_model: "llama-3.3-70b-versatile"      # Model for planning agent
+  synthesizer_model: "llama-3.3-70b-versatile" # Model for synthesis agent
+  temperature: 0                                 # Temperature for deterministic outputs
+
+# Researcher Agent Configuration
+researcher:
+  max_results_per_query: 8     # Maximum search results per query
+  max_sources_total: 10        # Maximum total sources to collect
+  min_reliability: 0.5         # Minimum reliability score for sources
+
+# Verifier Agent Configuration
+verifier:
+  min_reliability_required: 0.6  # Minimum reliability required for citations
+
+# Workflow Settings
+workflow:
+  max_iterations: 10      # Maximum number of workflow iterations
+  synthesizer_mode: "normal"  # normal or strict mode for synthesis

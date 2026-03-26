@@ -18,6 +18,7 @@ EventType = Literal[
     "EvidenceItemCreated",
     "EvidenceItemRejected",
     "ResearchCompleted",
+    "AgentError",
 ]
 
 

@@ -3,7 +3,9 @@ from langchain_core.messages import AIMessage
 
 from engine.agents.planner import PlannerAgent
 from engine.agents.researcher import ResearcherAgent, ResearcherConfig
-from engine.graph.flow import build_graph
+from engine.graph.flow_loop import build_graph
+from engine.graph.nodes import researcher_node
+from engine.schemas.evidence import EvidenceItem
 
 PLAN_JSON = """
 {
@@ -46,3 +48,45 @@ def test_planner_researcher_flow_unit():
     assert "plan" in out
     assert "evidence" in out
     assert len(out["evidence"]) >= 1
+
+
+def test_researcher_node_refetch_keeps_low_existing_evidence():
+    existing_evidence = [
+        EvidenceItem(
+            id="S1",
+            url="https://example.com/low",
+            title="Low",
+            snippet="Low quality",
+            reliability_score=0.4,
+            relevance_score=0.3,
+            content_hash="abc",
+        )
+    ]
+
+    def fake_fetch_low(url: str):
+        return {
+            "url": url,
+            "status_code": 200,
+            "title": "Low",
+            "publisher": "Pub",
+            "text": "low relevance content",
+        }
+
+    researcher = ResearcherAgent(
+        web_search=fake_web_search,
+        fetch_url=fake_fetch_low,
+        cfg=ResearcherConfig(max_results_per_query=5, max_sources_total=5, min_reliability=0.6, min_relevance=0.6),
+    )
+
+    node = researcher_node(researcher)
+
+    out = node(
+        {
+            "question": "test question",
+            "evidence": existing_evidence,
+            "refetch_urls": ["https://example.com/low"],
+        },
+        {"configurable": {"emitter": None}},
+    )
+
+    assert any(e.url == "https://example.com/low" for e in out["evidence"])

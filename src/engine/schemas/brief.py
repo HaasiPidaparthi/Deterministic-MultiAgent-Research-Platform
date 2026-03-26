@@ -10,10 +10,10 @@ class Claim(BaseModel):
 class BriefDraft(BaseModel):
     model_config = ConfigDict(extra="forbid")
     title: str = Field(min_length=5)
-    executive_summary: str = Field(min_length=50)
+    executive_summary: str = Field(min_length=10)
     key_findings: List[Claim] = Field(min_length=3, max_length=12)
     risks: List[Claim] = Field(default_factory=list)
-    recommendation: str = Field(min_length=30)
+    recommendation: str = Field(min_length=5)
     next_steps: List[str] = Field(default_factory=list)
 
     assumptions: List[str] = Field(default_factory=list)

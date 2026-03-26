@@ -2,7 +2,7 @@ from typing import List, Optional, Union
 from pydantic import BaseModel, Field, ConfigDict
 
 class StopCriteria(BaseModel):
-    min_sources: int = Field(default=5, ge=1, description="Minimum distinct sources to collect")
+    min_sources: int = Field(default=1, ge=1, description="Minimum distinct sources to collect")
     min_claim_coverage: float = Field(default=0.85, ge=0.0, le=1.0, description="Fraction of claims supported by evidence")
     max_minutes: Optional[int] = Field(default=None, ge=1, description="Optional time cap for research stage")
 

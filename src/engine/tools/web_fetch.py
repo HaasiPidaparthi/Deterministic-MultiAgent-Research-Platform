@@ -10,6 +10,16 @@ def _guess_title_from_text(text: str) -> Optional[str]:
             return s[:120]
     return None
 
+def _error_response(url: str, status_code: int = 500) -> Dict[str, Any]:
+    """Return a standard error response dict."""
+    return {
+        "url": url,
+        "status_code": status_code,
+        "title": None,
+        "publisher": None,
+        "text": "",
+    }
+
 @tool
 def fetch_url(
     url: str,
@@ -32,17 +42,16 @@ def fetch_url(
     )
 
     raw = extractor.invoke({"urls": [url]})
+    
+    # Handle case where Tavily returns an error string instead of dict
+    if isinstance(raw, str):
+        return _error_response(url)
+    
     results = raw.get("results", []) or []
     failed = raw.get("failed_results", []) or []
 
     if url in failed or not results:
-        return {
-            "url": url,
-            "status_code": 500,
-            "title": None,
-            "publisher": None,
-            "text": "",
-        }
+        return _error_response(url)
 
     r0 = results[0]
     text = (r0.get("raw_content") or "").strip()

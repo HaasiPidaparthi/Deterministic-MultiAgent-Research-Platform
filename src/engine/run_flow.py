@@ -1,11 +1,21 @@
+"""
+Deterministic Multi-Agent Workflow Orchestrator
+
+This module provides the main entry point for running the multi-agent workflow
+that researches, analyzes, and verifies business questions using a coordinated
+team of AI agents.
+"""
+
 import os
 import uuid
 import json
+import yaml
+import argparse
 from dotenv import load_dotenv
 
 from langchain_groq import ChatGroq
 
-from engine.graph.flow import build_graph
+from engine.graph.flow_loop import build_graph
 from engine.agents.planner import PlannerAgent
 from engine.agents.researcher import ResearcherAgent, ResearcherConfig
 from engine.agents.synthesizer import SynthesizerAgent
@@ -17,17 +27,52 @@ from engine.events.sink import InMemorySink, JsonlFileSink
 from engine.reporting.run_report import make_run_paths, build_markdown_report
 
 
+def load_config(config_path: str = "config.yaml") -> dict:
+    """
+    Load configuration from YAML file.
+
+    Args:
+        config_path: Path to the configuration YAML file
+
+    Returns:
+        Dictionary containing configuration parameters
+
+    Raises:
+        FileNotFoundError: If config file doesn't exist
+        yaml.YAMLError: If config file is malformed
+    """
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Configuration file not found: {config_path}")
+
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+
+    return config
+
+
 def _print_plan(plan):
+    """
+    Print a formatted summary of the research plan.
+
+    Args:
+        plan: ResearchPlan object containing subquestions and search queries
+    """
     print("\n=== PLAN ===")
     print(f"Subquestions: {len(plan.subquestions)}")
     for i, sq in enumerate(plan.subquestions[:6]):
         q = getattr(sq, "question", str(sq))
         print(f"  {i+1}. {q}")
-    print(f"Search queries: {len(plan.search_queries)}")
+    print(f"\nSearch queries: {len(plan.search_queries)}")
     for q in plan.search_queries[:8]:
         print(f"  - {q}")
 
 def _print_evidence(evidence):
+    """
+    Print a formatted summary of the collected evidence.
+
+    Args:
+        evidence: List of EvidenceItem objects
+    """
     print("\n=== EVIDENCE (top) ===")
     for e in evidence[:8]:
         print(f"{e.id} | rel={e.reliability_score:.2f} rev={e.relevance_score:.2f} | {e.title or ''}")
@@ -37,6 +82,12 @@ def _print_evidence(evidence):
         print()
 
 def _print_brief(brief):
+    """
+    Print a formatted summary of the synthesized brief.
+
+    Args:
+        brief: BriefDraft object containing the analysis results
+    """
     print("\n=== BRIEF DRAFT ===")
     print(brief.title)
     print("\nExecutive summary:")
@@ -62,6 +113,12 @@ def _print_brief(brief):
             print(f"  - {s}")
 
 def _print_report(report):
+    """
+    Print a formatted summary of the verification report.
+
+    Args:
+        report: VerificationReport object containing verification results
+    """
     print("\n=== VERIFICATION REPORT ===")
     print(f"PASSED: {report.passed}")
     print(f"Claims: {report.claim_count} | Cited: {report.cited_claim_count} | Coverage: {report.citation_coverage:.2f}")
@@ -76,8 +133,32 @@ def _print_report(report):
             print(f"  - [{iss.severity.upper()}] {iss.code}{loc}: {iss.message}{ev}")
  
 
-def main():
+def main(config_path: str = "config.yaml"):
+    """
+    Main entry point for the multi-agent workflow orchestrator.
+
+    This function loads configuration from a YAML file and sets up the complete workflow including:
+    - Event logging and monitoring
+    - LLM configuration for different agents
+    - Agent initialization with appropriate tools and configs
+    - Graph construction and execution
+    - Result reporting and output formatting
+
+    Args:
+        config_path: Path to the YAML configuration file
+
+    The workflow follows this sequence:
+    1. Planner: Breaks down the question into subquestions and search queries
+    2. Researcher: Searches and fetches relevant evidence
+    3. Synthesizer: Analyzes evidence and creates a comprehensive brief
+    4. Verifier: Validates the brief for accuracy and completeness
+
+    Results are saved to both markdown and JSON formats for review.
+    """
     load_dotenv()
+
+    # Load configuration
+    config = load_config()
 
     # --- Event logging per run ---
     run_id = str(uuid.uuid4())
@@ -85,18 +166,23 @@ def main():
     sink = JsonlFileSink(events_path)  # or InMemorySink()
     emitter = Emitter(sink=sink, run_id=run_id)
 
-    print("\n--- TIMELINE ---")
+    question = config["question"]
+
+    print("\n=== TIMELINE ===")
     print(f"Run ID: {run_id}")
     print(f"Events: {events_path}")
+    print(f"Config: {os.path.abspath('config.yaml')}")
+
+    print(f"\nQuestion: {question}")
 
     # --- LLMs ---
     planner_llm = ChatGroq(
-        model=os.getenv("PLANNER_MODEL", "llama-3.3-70b-versatile"),
-        temperature=0,
+        model=os.getenv("PLANNER_MODEL", config["llm"]["planner_model"]),
+        temperature=config["llm"]["temperature"],
     )
     synth_llm = ChatGroq(
-        model=os.getenv("SYNTH_MODEL", "llama-3.3-70b-versatile"),
-        temperature=0,
+        model=os.getenv("SYNTH_MODEL", config["llm"]["synthesizer_model"]),
+        temperature=config["llm"]["temperature"],
     )
 
     # --- Agents ---
@@ -105,19 +191,34 @@ def main():
     researcher = ResearcherAgent(
         web_search=web_search, 
         fetch_url=fetch_url, 
-        cfg=ResearcherConfig(max_results_per_query=5, max_sources_total=5, min_reliability=0.4)
+        cfg=ResearcherConfig(
+            max_results_per_query=config["researcher"]["max_results_per_query"],
+            max_sources_total=config["researcher"]["max_sources_total"],
+            min_reliability=config["researcher"]["min_reliability"]
+        )
     )
 
     synthesizer = SynthesizerAgent(llm=synth_llm)
 
-    verifier = VerifierAgent(cfg=VerifierConfig(min_reliability_required=0.5))
+    verifier = VerifierAgent(
+        cfg=VerifierConfig(
+            min_reliability_required=config["verifier"]["min_reliability_required"]
+        )
+    )
 
     # --- Graph ---
     app = build_graph(planner, researcher, synthesizer, verifier)
 
     # --- Run ---
-    question = "Should we enter the SMB payroll market?"
-    state = {"question": question, "budget_usd": 2.5, "time_limit_s": 180}
+    question = config["question"]
+    state = {
+        "question": question, 
+        "budget_usd": config["budget_usd"], 
+        "time_limit_s": config["time_limit_seconds"],
+        "iter": 0,
+        "researcher_overrides": {},  # start with no overrides
+        "synthesizer_mode": config["workflow"]["synthesizer_mode"],  # start in configured mode
+    }
 
     out = app.invoke(state, config={"configurable": {"emitter": emitter}})
 
@@ -133,6 +234,7 @@ def main():
         brief=out["brief"],
         report=out["report"],
         events_path=events_path,
+        metrics=out.get("metrics", {}),
     )
 
     paths.report_md.write_text(md, encoding="utf-8")
@@ -164,4 +266,20 @@ def main():
     
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description="Deterministic Multi-Agent Workflow Orchestrator",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python src/engine/run_flow.py                    # Use default config.yaml
+  python src/engine/run_flow.py -c my_config.yaml  # Use custom config file
+        """
+    )
+    parser.add_argument(
+        "-c", "--config",
+        default="config.yaml",
+        help="Path to configuration YAML file (default: config.yaml)"
+    )
+
+    args = parser.parse_args()
+    main(config_path=args.config)
