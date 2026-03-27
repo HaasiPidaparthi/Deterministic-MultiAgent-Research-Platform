@@ -50,43 +50,43 @@ The system follows a modular, event-driven architecture built on LangChain and m
 deterministic-multi-agent-engine/
 ├── src/
 │   └── engine/
-│       ├── agents/                # Specialized AI agents
-│       │   ├── planner.py         # Task decomposition agent
-│       │   ├── researcher.py      # Information gathering agent
-│       │   ├── synthesizer.py     # Analysis and synthesis agent
-│       │   └── verifier.py        # Validation and verification agent
-│       ├── events/                # Event-driven architecture
-│       │   ├── emitter.py         # Event emission system
-│       │   ├── models.py          # Event data models
-│       │   └── sink.py            # Event storage and handling
-│       ├── graph/                 # Workflow execution engine
-│       │   ├── flow_loop.py       # Main workflow orchestration
-│       │   ├── loop_controller.py # Iteration control
-│       │   ├── nodes.py           # Graph node definitions
-│       │   ├── retry_policy.py    # Error handling strategies
-│       │   └── state.py           # Workflow state management
-│       ├── metrics/               # Performance monitoring
-│       │   ├── llm_usage.py       # API cost tracking
-│       │   └── run_metrics.py     # Execution metrics
-│       ├── reporting/             # Output generation
-│       │   ├── events.py          # Event-based reporting
-│       │   └── run_report.py      # Markdown report builder
-│       ├── schemas/               # Data models and validation
-│       │   ├── brief.py           # Task briefing schemas
-│       │   ├── evidence.py        # Evidence collection schemas
-│       │   ├── planner.py         # Planning data structures
-│       │   └── verify.py          # Verification schemas
-│       ├── tools/                 # External integrations
-│       │   ├── extract.py         # Content extraction utilities
-│       │   ├── web_fetch.py       # URL content fetching
-│       │   ├── web_search.py      # Search engine integration
-│       │   └── web_types.py       # Web-related type definitions
-│       └── run_flow.py            # Main application entry point
-├── tests/                         # Comprehensive test suite
-├── config.example.yaml            # Configuration template
-├── pyproject.toml                 # Python project configuration
-├── environment.yml                # Conda environment specification
-└── pytest.ini                     # Test configuration
+│   │    ├── agents/                # Specialized AI agents
+│   │    │   ├── planner.py         # Task decomposition agent
+│   │    │   ├── researcher.py      # Information gathering agent
+│   │    │   ├── synthesizer.py     # Analysis and synthesis agent
+│   │    │   └── verifier.py        # Validation and verification agent
+│   │    ├── events/                # Event-driven architecture
+│   │    │   ├── emitter.py         # Event emission system
+│   │    │   ├── models.py          # Event data models
+│   │    │   └── sink.py            # Event storage and handling
+│   │    ├── graph/                 # Workflow execution engine
+│   │    │   ├── flow_loop.py       # Main workflow orchestration
+│   │    │   ├── loop_controller.py # Iteration control
+│   │    │   ├── nodes.py           # Graph node definitions
+│   │    │   ├── retry_policy.py    # Error handling strategies
+│   │    │   └── state.py           # Workflow state management
+│   │    ├── metrics/               # Performance monitoring
+│   │    │   ├── llm_usage.py       # API cost tracking
+│   │    │   └── run_metrics.py     # Execution metrics
+│   │    ├── reporting/             # Output generation
+│   │    │   ├── events.py          # Event-based reporting
+│   │    │   └── run_report.py      # Markdown report builder
+│   │    ├── schemas/               # Data models and validation
+│   │    │   ├── brief.py           # Task briefing schemas
+│   │    │   ├── evidence.py        # Evidence collection schemas
+│   │    │   ├── planner.py         # Planning data structures
+│   │    │   └── verify.py          # Verification schemas
+│   │    ├── tools/                 # External integrations
+│   │    │   ├── extract.py         # Content extraction utilities
+│   │    │   ├── web_fetch.py       # URL content fetching
+│   │    │   ├── web_search.py      # Search engine integration
+│   │    │   └── web_types.py       # Web-related type definitions
+│   │    └── run_flow.py            # Main application entry point
+│   └── tests/                      # Comprehensive test suite
+├── config.example.yaml             # Configuration template
+├── pyproject.toml                  # Python project configuration
+├── environment.yml                 # Conda environment specification
+└── pytest.ini                      # Test configuration
 ```
 
 ## 🛠️ Installation
