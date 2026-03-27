@@ -49,7 +49,7 @@ The system follows a modular, event-driven architecture built on LangChain and m
 ```
 deterministic-multi-agent-engine/
 ├── src/
-│   └── engine/
+│   ├── engine/
 │   │    ├── agents/                # Specialized AI agents
 │   │    │   ├── planner.py         # Task decomposition agent
 │   │    │   ├── researcher.py      # Information gathering agent
