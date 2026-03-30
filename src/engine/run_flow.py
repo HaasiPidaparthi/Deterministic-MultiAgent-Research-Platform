@@ -25,6 +25,7 @@ from engine.tools.web_fetch import fetch_url
 from engine.events.emitter import Emitter
 from engine.events.sink import InMemorySink, JsonlFileSink
 from engine.reporting.run_report import make_run_paths, build_markdown_report
+from engine.tools.rag import RAGConfig
 
 
 def load_config(config_path: str = "config.yaml") -> dict:
@@ -46,6 +47,9 @@ def load_config(config_path: str = "config.yaml") -> dict:
 
     with open(config_path, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
+
+    if not isinstance(config, dict):
+        raise ValueError(f"Configuration file must contain a YAML mapping: {config_path}")
 
     return config
 
@@ -158,7 +162,7 @@ def main(config_path: str = "config.yaml"):
     load_dotenv()
 
     # Load configuration
-    config = load_config()
+    config = load_config(config_path)
 
     # --- Event logging per run ---
     run_id = str(uuid.uuid4())
@@ -194,7 +198,16 @@ def main(config_path: str = "config.yaml"):
         cfg=ResearcherConfig(
             max_results_per_query=config["researcher"]["max_results_per_query"],
             max_sources_total=config["researcher"]["max_sources_total"],
-            min_reliability=config["researcher"]["min_reliability"]
+            min_reliability=config["researcher"]["min_reliability"],
+            enable_rag=config["researcher"].get("enable_rag", True),
+            rag_config=RAGConfig(
+                collection_name=config["researcher"].get("rag", {}).get("collection_name", "research_knowledge_base"),
+                embedding_model=config["researcher"].get("rag", {}).get("embedding_model", "nomic-embed-text"),
+                persist_directory=config["researcher"].get("rag", {}).get("persist_directory", "./data/chroma_db"),
+                similarity_threshold=config["researcher"].get("rag", {}).get("similarity_threshold", 0.7),
+                max_results=config["researcher"].get("rag", {}).get("max_results", 5),
+                min_relevance=config["researcher"].get("rag", {}).get("min_relevance", 0.3),
+            )
         )
     )
 

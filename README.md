@@ -10,9 +10,10 @@ A sophisticated, tool-first, budget-aware runtime engine for orchestrating deter
 The Deterministic Multi-Agent Workflow Orchestrator is designed to automate complex research and decision-making processes using a collaborative AI agent architecture. By leveraging specialized agents (Planner, Researcher, Synthesizer, and Verifier), the system provides reliable, cost-effective solutions to business intelligence questions with full traceability and evaluation metrics.
 
 ### Key Capabilities
+- **Multi-Agent Architecture**: Specialized agents for planning, research, synthesis, and verification
+- **RAG Integration**: Vector database search before web search for internal knowledge bases
 - **Deterministic Workflows**: Ensures reproducible results through structured agent interactions
-- **Budget Awareness**: Real-time cost tracking and enforcement for LLM API calls
-- **Multi-Agent Coordination**: Specialized agents working in harmony for comprehensive analysis
+- **Cost Awareness**: Real-time cost tracking and enforcement for LLM API calls
 - **Tool Integration**: Web search and content fetching capabilities for data-driven insights
 - **Comprehensive Reporting**: Detailed execution reports with metrics and event logs
 - **Configurable Architecture**: Flexible YAML-based configuration for various use cases
@@ -43,6 +44,62 @@ The system follows a modular, event-driven architecture built on LangChain and m
 - **Metrics Collection**: LLM usage tracking, execution times, and performance metrics
 - **Run Reports**: Markdown-based reports with detailed execution summaries
 - **Event Sinks**: In-memory and file-based event storage for analysis
+
+## 🔍 RAG (Retrieval-Augmented Generation)
+
+The orchestrator includes RAG functionality to search internal knowledge bases before falling back to web search. This improves efficiency and allows incorporation of proprietary or internal documents.
+
+### Setting up RAG
+
+1. **Install dependencies** (already included in pyproject.toml):
+   ```bash
+   pip install -e .
+   ```
+
+2. **Populate the vector database** with your documents:
+   ```bash
+   # Add sample business documents (for testing)
+   python populate_rag.py --sample
+
+   # Add local files
+   python populate_rag.py --files research_docs/*.txt internal_reports/*.pdf
+
+   # Add web pages (requires TAVILY_API_KEY)
+   python populate_rag.py --urls "https://example.com/internal-doc1"
+
+   # Check database stats
+   python populate_rag.py --stats
+   ```
+
+3. **Configure RAG** in your `config.yaml`:
+   ```yaml
+   researcher:
+     enable_rag: true
+     rag:
+       collection_name: "research_knowledge_base"
+       embedding_model: "nomic-embed-text"
+       persist_directory: "./data/chroma_db"
+       similarity_threshold: 0.7
+       max_results: 5
+       min_relevance: 0.3
+   ```
+
+### RAG Workflow
+
+1. **Query Analysis**: Agent analyzes the research question
+2. **RAG Search**: Searches vector database for relevant internal documents
+3. **Web Search**: If insufficient results from RAG, performs web search
+4. **Evidence Integration**: Combines and deduplicates evidence from both sources
+5. **Synthesis**: Creates comprehensive brief using all available evidence
+
+### Testing RAG
+
+Run the test script to verify RAG functionality:
+```bash
+python test_rag.py
+```
+
+This demonstrates semantic search across the vector database with relevance scoring.
 
 ## 📁 Project Structure
 
@@ -231,7 +288,3 @@ Ideal for:
 - **Decision Support**: Complex decision-making with evidence-based answers
 - **Research Automation**: Systematic information gathering and synthesis
 - **Cost-Effective AI**: Budget-constrained AI workflows with guaranteed outcomes
-
----
-
-**Built with ❤️ using Python, LangChain, and modern AI engineering practices.**

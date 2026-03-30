@@ -1,3 +1,8 @@
 langchain>=1.2.10
+langchain-community>=0.2.0
 langchain-ollama>=1.0.1
 langchain-openai>=1.1.10
+langchain-chroma>=0.1.2
+chromadb>=0.4.24
+pyyaml>=6.0
+sentence-transformers>=2.7.0

@@ -28,6 +28,7 @@ src/engine/schemas/evidence.py
 src/engine/schemas/planner.py
 src/engine/schemas/verify.py
 src/engine/tools/extract.py
+src/engine/tools/rag.py
 src/engine/tools/web_fetch.py
 src/engine/tools/web_search.py
 src/engine/tools/web_types.py

@@ -4,5 +4,10 @@ Version: 0.1.0
 Summary: Cost-aware research + synthesis multi-agent workflow engine
 Requires-Python: >=3.11
 Requires-Dist: langchain>=1.2.10
+Requires-Dist: langchain-community>=0.2.0
 Requires-Dist: langchain-ollama>=1.0.1
 Requires-Dist: langchain-openai>=1.1.10
+Requires-Dist: langchain-chroma>=0.1.2
+Requires-Dist: chromadb>=0.4.24
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: sentence-transformers>=2.7.0

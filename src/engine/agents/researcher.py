@@ -14,6 +14,7 @@ import concurrent.futures
 from engine.schemas.evidence import EvidenceItem
 from engine.tools.web_types import SearchResult, FetchResult
 from engine.tools.extract import hash_text, reliability_score, relevance_score_embed
+from engine.tools.rag import RAGRetriever, RAGConfig
 from engine.events.emitter import Emitter
 from engine.metrics.run_metrics import inc_tool, inc_reject
 
@@ -33,6 +34,8 @@ class ResearcherConfig:
         embedding_model: Model name for relevance embeddings
         min_relevance: Minimum relevance score required for evidence
         evidence_quality_threshold: Threshold for triggering refetch of low-quality evidence
+        enable_rag: Whether to use RAG (vector DB search) before web search
+        rag_config: Configuration for RAG functionality
     """
     max_results_per_query: int = 3
     max_sources_total: int = 5
@@ -40,6 +43,8 @@ class ResearcherConfig:
     embedding_model: str = "nomic-embed-text"
     min_relevance: float = 0.20
     evidence_quality_threshold: float = 0.6  # same threshold used by verifier for consistency
+    enable_rag: bool = True
+    rag_config: RAGConfig = field(default_factory=RAGConfig)
 
 @dataclass
 class ResearcherAgent:
@@ -49,11 +54,12 @@ class ResearcherAgent:
     The ResearcherAgent performs web searches using the provided search function,
     fetches content from promising URLs, and scores each piece of evidence for
     reliability and relevance. It can operate in normal research mode or refetch
-    mode for specific URLs.
+    mode for specific URLs. Includes RAG functionality for internal knowledge base search.
     """
     web_search: SearchFn
     fetch_url: FetchFn
     cfg: ResearcherConfig = field(default_factory=ResearcherConfig)
+    rag_retriever: Optional[RAGRetriever] = None
 
     def _call_search(self, query: str, emitter=None) -> List[dict]:
         """
@@ -107,6 +113,43 @@ class ResearcherAgent:
                 **data,
             )
 
+    def _parallel_fetch_urls(self, urls: List[str], emitter=None, metrics=None):
+        """Fetch multiple URLs in parallel and preserve the original order."""
+        results = [None] * len(urls)
+        future_to_index = {}
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for index, url in enumerate(urls):
+                if emitter:
+                    emitter.emit("ToolCallRequested", agent="researcher", tool="fetch_url", url=url)
+                future = executor.submit(self._call_fetch, url, emitter=None)
+                future_to_index[future] = index
+
+            for future in concurrent.futures.as_completed(future_to_index):
+                index = future_to_index[future]
+                url = urls[index]
+                try:
+                    fetched = future.result()
+                    if emitter:
+                        status_code = fetched.get("status_code") if isinstance(fetched, dict) else None
+                        emitter.emit("ToolCallCompleted", agent="researcher", tool="fetch_url", url=url, status_code=status_code)
+                    if metrics is not None:
+                        inc_tool(metrics, "fetch_url", 1)
+                    results[index] = (url, fetched, None)
+                except Exception as exc:
+                    if emitter:
+                        emitter.emit("ToolCallFailed", agent="researcher", tool="fetch_url", url=url, error=str(exc))
+                    if metrics is not None:
+                        inc_tool(metrics, "fetch_url", 1)
+                    results[index] = (url, None, exc)
+
+        return results
+
+
+    def _init_rag_if_needed(self):
+        """Initialize RAG retriever if enabled and not already initialized."""
+        if self.cfg.enable_rag and self.rag_retriever is None:
+            self.rag_retriever = RAGRetriever(self.cfg.rag_config)
 
     def research(self, question: str, search_queries: List[str], emitter=None, metrics=None, refetch_urls: Optional[List[str]] = None) -> List[EvidenceItem]:
         """
@@ -126,22 +169,22 @@ class ResearcherAgent:
             seen_hashes = set()
             sid = 1
 
-            # Parallelize fetches
-            if emitter:
-                for url in refetch_urls:
-                    emitter.emit("ToolCallRequested", agent="researcher", tool="fetch_url", url=url)
-            fetched_list = []
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                fetched_list = list(executor.map(lambda url: self._call_fetch(url, emitter=None), refetch_urls))
-            if emitter:
-                for url in refetch_urls:
-                    emitter.emit("ToolCallCompleted", agent="researcher", tool="fetch_url", url=url)
+            fetched_results = self._parallel_fetch_urls(refetch_urls, emitter=emitter, metrics=metrics)
 
-            for i, url in enumerate(refetch_urls):
-                fetched = fetched_list[i]
-                if metrics is not None:
-                    inc_tool(metrics, "fetch_url", 1)
-                fr = FetchResult.model_validate(fetched)
+            for url, fetched, exc in fetched_results:
+                if exc is not None:
+                    self._reject(emitter, url, reason="fetch_exception", error=str(exc))
+                    continue
+                try:
+                    fr = FetchResult.model_validate(fetched)
+                except Exception as validation_error:
+                    self._reject(
+                        emitter,
+                        url,
+                        reason="fetch_validation_error",
+                        error=str(validation_error),
+                    )
+                    continue
 
                 if fr.status_code >= 400:
                     self._reject(emitter, url, reason="fetch_http_error", status_code=fr.status_code)
@@ -216,6 +259,46 @@ class ResearcherAgent:
         if search_queries:
             query_context = query_context + "\n\nSearch queries:\n" + "\n".join(search_queries)
 
+        # Initialize RAG if needed
+        self._init_rag_if_needed()
+
+        # 0) Try RAG search first if enabled
+        rag_evidence = []
+        if self.cfg.enable_rag and self.rag_retriever:
+            if emitter:
+                emitter.emit("RAGSearchStarted", agent="researcher", question=question, queries_count=len(search_queries))
+
+            # Search RAG for each query
+            for q in search_queries:
+                try:
+                    rag_results = self.rag_retriever.search_and_convert_to_evidence(
+                        query=q,
+                        question_context=query_context,
+                        min_relevance=self.cfg.min_relevance
+                    )
+                    rag_evidence.extend(rag_results)
+
+                    if emitter:
+                        emitter.emit("RAGSearchCompleted", agent="researcher", query=q, results_count=len(rag_results))
+                except Exception as e:
+                    if emitter:
+                        emitter.emit("RAGSearchFailed", agent="researcher", query=q, error=str(e))
+
+            # Remove duplicates from RAG results
+            seen_hashes = set()
+            unique_rag_evidence = []
+            for item in rag_evidence:
+                if item.content_hash not in seen_hashes:
+                    seen_hashes.add(item.content_hash)
+                    unique_rag_evidence.append(item)
+
+            # Enforce reliability threshold on RAG results as well
+            rag_evidence = [
+                item for item in unique_rag_evidence
+                if item.reliability_score >= self.cfg.min_reliability
+            ]
+            rag_evidence = rag_evidence[: self.cfg.max_sources_total]  # Limit RAG results
+
         # 1) search -> candidate urls
         candidates: List[SearchResult] = []
         seen_urls: Set[str] = set()
@@ -243,25 +326,29 @@ class ResearcherAgent:
         seen_hashes: Set[str] = set()
         sid = 1
 
-        # Parallelize fetches
-        if emitter:
-            for c in candidates:
-                emitter.emit("ToolCallRequested", agent="researcher", tool="fetch_url", url=c.url)
-        fetched_list = []
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            fetched_list = list(executor.map(lambda c: self._call_fetch(c.url, emitter=None), candidates))
-        if emitter:
-            for c in candidates:
-                emitter.emit("ToolCallCompleted", agent="researcher", tool="fetch_url", url=c.url)
+        fetched_results = self._parallel_fetch_urls([c.url for c in candidates], emitter=emitter, metrics=metrics)
 
         for i, c in enumerate(candidates):
             if len(evidence) >= self.cfg.max_sources_total:
                 break
-            
-            fetched = fetched_list[i]
-            if metrics is not None:
-                inc_tool(metrics, "fetch_url", 1)
-            fr = FetchResult.model_validate(fetched)
+
+            url, fetched, exc = fetched_results[i]
+            if exc is not None:
+                self._reject(emitter, url, reason="fetch_exception", error=str(exc))
+                rejected += 1
+                continue
+
+            try:
+                fr = FetchResult.model_validate(fetched)
+            except Exception as validation_error:
+                self._reject(
+                    emitter,
+                    url,
+                    reason="fetch_validation_error",
+                    error=str(validation_error),
+                )
+                rejected += 1
+                continue
 
             if fr.status_code >= 400:
                 self._reject(emitter, c.url, reason="fetch_http_error", status_code=fr.status_code) 
@@ -312,28 +399,45 @@ class ResearcherAgent:
             sid += 1
             evidence.append(item)
 
-            emitter and emitter.emit(
-                "EvidenceItemCreated",
-                agent="researcher",
-                evidence_id=item.id,
-                url=item.url,
-                reliability=item.reliability_score,
-                relevance=item.relevance_score,
-            )
+        # 3) Combine RAG and web evidence, remove duplicates, sort best-first
+        all_evidence = rag_evidence + evidence
 
-        # 3) sort best-first
-        evidence.sort(
-            key=lambda e: (e.reliability_score * 0.6 + e.relevance_score * 0.4), 
+        # Remove duplicates based on content hash
+        seen_hashes = set()
+        unique_evidence = []
+        for item in all_evidence:
+            if item.content_hash not in seen_hashes:
+                seen_hashes.add(item.content_hash)
+                unique_evidence.append(item)
+
+        # Sort by quality score and limit to max_sources_total
+        unique_evidence.sort(
+            key=lambda e: (e.reliability_score * 0.6 + e.relevance_score * 0.4),
             reverse=True,
         )
+        final_evidence = unique_evidence[:self.cfg.max_sources_total]
+
+        if emitter:
+            for item in final_evidence:
+                emitter.emit(
+                    "EvidenceItemCreated",
+                    agent="researcher",
+                    evidence_id=item.id,
+                    url=item.url,
+                    reliability=item.reliability_score,
+                    relevance=item.relevance_score,
+                )
 
         emitter and emitter.emit(
             "ResearchCompleted",
             agent="researcher",
             candidates_count=len(candidates),
-            evidence_count=len(evidence),
+            rag_evidence_count=len(rag_evidence),
+            web_evidence_count=len(evidence),
+            final_evidence_count=len(final_evidence),
+            evidence_count=len(final_evidence),
             rejected_count=rejected,
         )
         emitter and emitter.emit("AgentFinished", agent="researcher")
 
-        return evidence
+        return final_evidence

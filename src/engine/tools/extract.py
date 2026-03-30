@@ -7,7 +7,7 @@ from engine.tools.web_types import FetchResult
 
 try:
     import ollama
-except Exception:
+except ImportError:
     ollama = None  # embeddings optional
 
 _EMBED_CACHE = {}

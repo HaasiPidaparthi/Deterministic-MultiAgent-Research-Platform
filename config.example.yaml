@@ -19,6 +19,14 @@ researcher:
   max_results_per_query: 8     # Maximum search results per query
   max_sources_total: 10        # Maximum total sources to collect
   min_reliability: 0.5         # Minimum reliability score for sources
+  enable_rag: true             # Enable RAG (vector DB search) before web search
+  rag:
+    collection_name: "research_knowledge_base"  # Vector DB collection name
+    embedding_model: "nomic-embed-text"         # Embedding model for RAG
+    persist_directory: "./data/chroma_db"       # Directory to persist vector DB
+    similarity_threshold: 0.7   # Minimum similarity score for RAG results
+    max_results: 5              # Maximum RAG results per query
+    min_relevance: 0.3          # Minimum relevance score for RAG results
 
 # Verifier Agent Configuration
 verifier:
