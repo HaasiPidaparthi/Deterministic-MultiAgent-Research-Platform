@@ -44,6 +44,7 @@ class ResearcherConfig:
     min_relevance: float = 0.20
     evidence_quality_threshold: float = 0.6  # same threshold used by verifier for consistency
     enable_rag: bool = True
+    search_mode: Optional[str] = None  # One of 'rag', 'web', or 'both'
     rag_config: RAGConfig = field(default_factory=RAGConfig)
 
 @dataclass
@@ -150,6 +151,19 @@ class ResearcherAgent:
         """Initialize RAG retriever if enabled and not already initialized."""
         if self.cfg.enable_rag and self.rag_retriever is None:
             self.rag_retriever = RAGRetriever(self.cfg.rag_config)
+
+    def _effective_search_mode(self) -> str:
+        """Resolve the effective researcher search mode."""
+        if self.cfg.search_mode is not None:
+            mode = self.cfg.search_mode.lower()
+            return mode if mode in {"rag", "web", "both"} else "both"
+        return "both" if self.cfg.enable_rag else "web"
+
+    def _should_use_rag(self) -> bool:
+        return self._effective_search_mode() in {"rag", "both"}
+
+    def _should_use_web(self) -> bool:
+        return self._effective_search_mode() in {"web", "both"}
 
     def research(self, question: str, search_queries: List[str], emitter=None, metrics=None, refetch_urls: Optional[List[str]] = None) -> List[EvidenceItem]:
         """
@@ -259,12 +273,15 @@ class ResearcherAgent:
         if search_queries:
             query_context = query_context + "\n\nSearch queries:\n" + "\n".join(search_queries)
 
-        # Initialize RAG if needed
-        self._init_rag_if_needed()
+        use_rag = self._should_use_rag()
+        use_web = self._should_use_web()
+
+        if use_rag:
+            self._init_rag_if_needed()
 
         # 0) Try RAG search first if enabled
         rag_evidence = []
-        if self.cfg.enable_rag and self.rag_retriever:
+        if use_rag and self.rag_retriever:
             if emitter:
                 emitter.emit("RAGSearchStarted", agent="researcher", question=question, queries_count=len(search_queries))
 
@@ -298,6 +315,20 @@ class ResearcherAgent:
                 if item.reliability_score >= self.cfg.min_reliability
             ]
             rag_evidence = rag_evidence[: self.cfg.max_sources_total]  # Limit RAG results
+
+        if not use_web:
+            final_evidence = rag_evidence[: self.cfg.max_sources_total]
+            if emitter:
+                emitter.emit(
+                    "ResearchCompleted",
+                    agent="researcher",
+                    question=question,
+                    rag_evidence_count=len(final_evidence),
+                    web_evidence_count=0,
+                    final_evidence_count=len(final_evidence),
+                    rejected_count=0,
+                )
+            return final_evidence
 
         # 1) search -> candidate urls
         candidates: List[SearchResult] = []

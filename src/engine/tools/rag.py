@@ -116,7 +116,11 @@ class RAGRetriever:
                 for doc in documents
             ]
 
-        return self.vectorstore.add_documents(documents)
+        documents_to_add = []
+        for document in documents:
+            documents_to_add.extend(_split_document(document, chunk_size=1000))
+
+        return self.vectorstore.add_documents(documents_to_add)
 
     def add_texts(self, texts: List[str], metadatas: Optional[List[Dict[str, Any]]] = None) -> List[str]:
         """
@@ -329,6 +333,22 @@ def _chunk_text(text: str, chunk_size: int) -> List[str]:
         start = end if end > start else start + chunk_size
 
     return chunks
+
+
+def _split_document(document: Document, chunk_size: int = 1000) -> List[Document]:
+    """Split a single Document into smaller chunks for embedding."""
+    if not document.page_content or len(document.page_content) <= chunk_size:
+        return [document]
+
+    chunks = _chunk_text(document.page_content, chunk_size)
+    original_metadata = dict(document.metadata) if document.metadata else {}
+    split_documents: List[Document] = []
+
+    for index, chunk in enumerate(chunks):
+        metadata = {**original_metadata, "chunk_id": index}
+        split_documents.append(Document(page_content=chunk, metadata=metadata))
+
+    return split_documents
 
 
 def create_documents_from_files(file_paths: List[str], chunk_size: int = 1000) -> List[Document]:

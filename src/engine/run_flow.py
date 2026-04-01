@@ -11,6 +11,7 @@ import uuid
 import json
 import yaml
 import argparse
+from typing import Optional
 from dotenv import load_dotenv
 
 from langchain_groq import ChatGroq
@@ -25,6 +26,7 @@ from engine.tools.web_fetch import fetch_url
 from engine.events.emitter import Emitter
 from engine.events.sink import InMemorySink, JsonlFileSink
 from engine.reporting.run_report import make_run_paths, build_markdown_report
+from engine.reporting.dashboard import build_workflow_dashboard, make_dashboard_paths as make_dashboard_paths_dashboard
 from engine.tools.rag import RAGConfig
 
 
@@ -137,7 +139,7 @@ def _print_report(report):
             print(f"  - [{iss.severity.upper()}] {iss.code}{loc}: {iss.message}{ev}")
  
 
-def main(config_path: str = "config.yaml"):
+def main(config_path: str = "config.yaml", override_question: Optional[str] = None):
     """
     Main entry point for the multi-agent workflow orchestrator.
 
@@ -150,6 +152,7 @@ def main(config_path: str = "config.yaml"):
 
     Args:
         config_path: Path to the YAML configuration file
+        override_question: Optional new research question passed at runtime.
 
     The workflow follows this sequence:
     1. Planner: Breaks down the question into subquestions and search queries
@@ -163,6 +166,8 @@ def main(config_path: str = "config.yaml"):
 
     # Load configuration
     config = load_config(config_path)
+    if override_question:
+        config["question"] = override_question.strip()
 
     # --- Event logging per run ---
     run_id = str(uuid.uuid4())
@@ -192,6 +197,10 @@ def main(config_path: str = "config.yaml"):
     # --- Agents ---
     planner = PlannerAgent(llm=planner_llm)
 
+    researcher_search_mode = config["researcher"].get("search_mode")
+    if researcher_search_mode is None:
+        researcher_search_mode = "both" if config["researcher"].get("enable_rag", True) else "web"
+
     researcher = ResearcherAgent(
         web_search=web_search, 
         fetch_url=fetch_url, 
@@ -200,6 +209,7 @@ def main(config_path: str = "config.yaml"):
             max_sources_total=config["researcher"]["max_sources_total"],
             min_reliability=config["researcher"]["min_reliability"],
             enable_rag=config["researcher"].get("enable_rag", True),
+            search_mode=researcher_search_mode,
             rag_config=RAGConfig(
                 collection_name=config["researcher"].get("rag", {}).get("collection_name", "research_knowledge_base"),
                 embedding_model=config["researcher"].get("rag", {}).get("embedding_model", "nomic-embed-text"),
@@ -266,6 +276,16 @@ def main(config_path: str = "config.yaml"):
     }
     paths.report_json.write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
+    dashboard_paths = make_dashboard_paths_dashboard(run_id)
+    dashboard_html = build_workflow_dashboard(
+        run_id=run_id,
+        question=question,
+        metrics=out.get("metrics", {}),
+        time_limit_s=int(state["time_limit_s"]),
+        budget_usd=float(state["budget_usd"]),
+    )
+    dashboard_paths.dashboard_html.write_text(dashboard_html, encoding="utf-8")
+
 
     # --- Output ---
     _print_plan(out["plan"])
@@ -275,6 +295,7 @@ def main(config_path: str = "config.yaml"):
 
     print(f"\nSaved report: {paths.report_md}")
     print(f"Saved summary: {paths.report_json}")
+    print(f"Saved dashboard: {dashboard_paths.dashboard_html}")
     print("\nDone.")
     
 
@@ -294,5 +315,11 @@ Examples:
         help="Path to configuration YAML file (default: config.yaml)"
     )
 
+    parser.add_argument(
+        "--question",
+        default=None,
+        help="Override the configured research question with a new question."
+    )
+
     args = parser.parse_args()
-    main(config_path=args.config)
+    main(config_path=args.config, override_question=args.question)

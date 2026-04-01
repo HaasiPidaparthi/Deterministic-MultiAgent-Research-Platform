@@ -1,6 +1,14 @@
 from typing import Optional, Dict, Any
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 from langchain_core.tools import tool
 from langchain_tavily import TavilyExtract
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parents[3] / ".env")
+
+if not os.getenv("TAVILY_API_KEY"):
+    print("Warning: TAVILY_API_KEY is not set in the environment. Tavily URL extraction may fail.")
 
 def _guess_title_from_text(text: str) -> Optional[str]:
     # MVP: first non-empty line as "title"

@@ -1,0 +1,186 @@
+[
+  {
+    "title": "White House OSTP AI Strategy and Policy Hub",
+    "url": "https://www.whitehouse.gov/ostp/",
+    "publisher": "White House Office of Science and Technology Policy",
+    "source": "whitehouse.gov",
+    "domain": "ai_policy",
+    "summary": "Use OSTP intelligence and policy guidance to shape enterprise AI governance, public trust, and innovation strategy."
+  },
+  {
+    "title": "White House Equity in Artificial Intelligence",
+    "url": "https://whitehouse.gov/edai",
+    "publisher": "White House",
+    "source": "whitehouse.gov",
+    "domain": "ai_ethics",
+    "summary": "Include federal equity and AI resource guidance to support responsible, inclusive AI deployment strategies."
+  },
+  {
+    "title": "Federal AI Procurement and Use Policies",
+    "url": "https://www.whitehouse.gov/releases/2025/04/white-house-releases-new-policies-on-federal-agency-ai-use-and-procurement/",
+    "publisher": "White House",
+    "source": "whitehouse.gov",
+    "domain": "procurement",
+    "summary": "Use White House federal AI procurement policy to support compliance planning for AI solutions in regulated government and enterprise environments."
+  },
+  {
+    "title": "Public Engagement on the White House AI Action Plan",
+    "url": "https://www.whitehouse.gov/releases/2025/04/american-public-submits-over-10000-comments-on-white-houses-ai-action-plan/",
+    "publisher": "White House",
+    "source": "whitehouse.gov",
+    "domain": "public_policy",
+    "summary": "Capture public feedback trends on federal AI policy to inform business use cases around stakeholder engagement and governance."
+  },
+  {
+    "title": "White House AI Education and Workforce Commitment",
+    "url": "https://www.whitehouse.gov/releases/2025/06/60-organizations-sign-white-house-pledge-to-support-americas-youth-and-invest-in-ai-education/",
+    "publisher": "White House",
+    "source": "whitehouse.gov",
+    "domain": "workforce",
+    "summary": "Use federal AI education initiatives to support planning for talent development, upskilling, and workforce readiness."
+  },
+  {
+    "title": "White House APEC AI Ministerial Remarks",
+    "url": "https://www.whitehouse.gov/releases/2025/08/remarks-by-director-kratsios-at-the-apec-digital-and-ai-ministerial-meeting/",
+    "publisher": "White House",
+    "source": "whitehouse.gov",
+    "domain": "international_policy",
+    "summary": "Add international AI policy perspectives from the APEC AI ministerial to support global business strategy and cross-border AI governance."
+  },
+  {
+    "title": "Fact Sheet: Reducing Barriers for Federal AI Use",
+    "url": "https://www.whitehouse.gov/fact-sheets/2025/04/fact-sheet-eliminating-barriers-for-federal-artificial-intelligence-use-and-procurement/",
+    "publisher": "White House",
+    "source": "whitehouse.gov",
+    "domain": "ai_adoption",
+    "summary": "Leverage federal fact sheet guidance on removing AI adoption barriers to support enterprise roadmap planning and procurement strategy."
+  },
+  {
+    "title": "Presidential Action on AI Leadership",
+    "url": "https://www.whitehouse.gov/presidential-actions/2025/01/removing-barriers-to-american-leadership-in-artificial-intelligence/",
+    "publisher": "White House",
+    "source": "whitehouse.gov",
+    "domain": "economic_policy",
+    "summary": "Use presidential action guidance to align AI business planning with national leadership, innovation, and competitiveness priorities."
+  },
+  {
+    "title": "Presidential Action on AI Education for Youth",
+    "url": "https://www.whitehouse.gov/presidential-actions/2025/04/advancing-artificial-intelligence-education-for-american-youth/",
+    "publisher": "White House",
+    "source": "whitehouse.gov",
+    "domain": "education",
+    "summary": "Capture federal AI education policy to support workforce development and talent pipeline planning for AI-enabled businesses."
+  },
+  {
+    "title": "Presidential Action on American AI Technology Exports",
+    "url": "https://www.whitehouse.gov/presidential-actions/2025/07/promoting-the-export-of-the-american-ai-technology-stack/",
+    "publisher": "White House",
+    "source": "whitehouse.gov",
+    "domain": "trade",
+    "summary": "Use federal AI export policy to support global market expansion and compliance strategy for AI-enabled products and services."
+  },
+  {
+    "title": "Federal AI Innovation and Trust Memo",
+    "url": "https://www.whitehouse.gov/wp-content/uploads/2025/02/M-25-21-Accelerating-Federal-Use-of-AI-through-Innovation-Governance-and-Public-Trust.pdf",
+    "publisher": "White House",
+    "source": "whitehouse.gov",
+    "domain": "governance",
+    "summary": "Incorporate federal AI governance and trust guidance to support business case research in ethical, accountable AI operations."
+  },
+  {
+    "title": "Federal AI Acquisition Memo",
+    "url": "https://www.whitehouse.gov/wp-content/uploads/2025/02/M-25-22-Driving-Efficient-Acquisition-of-Artificial-Intelligence-in-Government.pdf",
+    "publisher": "White House",
+    "source": "whitehouse.gov",
+    "domain": "procurement",
+    "summary": "Use AI acquisition guidance to support enterprise procurement planning for responsible AI solution sourcing."
+  },
+  {
+    "title": "America\u2019s AI Action Plan",
+    "url": "https://www.whitehouse.gov/wp-content/uploads/2025/07/Americas-AI-Action-Plan.pdf",
+    "publisher": "White House",
+    "source": "whitehouse.gov",
+    "domain": "strategy",
+    "summary": "Use the national AI action plan to inform strategic business cases around public-private AI collaboration and economic impact."
+  },
+  {
+    "title": "NIST AI Risk Management Framework",
+    "url": "https://www.nist.gov/itl/ai-risk-management-framework",
+    "publisher": "National Institute of Standards and Technology",
+    "source": "nist.gov",
+    "domain": "ai_risk_management",
+    "summary": "Leverage NIST risk management standards to support safe, trustworthy AI deployment and compliance research."
+  },
+  {
+    "title": "NIST Artificial Intelligence Topic Hub",
+    "url": "https://www.nist.gov/artificial-intelligence",
+    "publisher": "National Institute of Standards and Technology",
+    "source": "nist.gov",
+    "domain": "ai_research",
+    "summary": "Use NIST AI research and standards messaging to support business cases for innovation, trust, and resilient AI systems."
+  },
+  {
+    "title": "CISA Artificial Intelligence Guidance",
+    "url": "https://www.cisa.gov/ai",
+    "publisher": "Cybersecurity and Infrastructure Security Agency",
+    "source": "cisa.gov",
+    "domain": "cybersecurity",
+    "summary": "Ingest CISA AI guidance to support secure deployment and risk management for AI-enabled infrastructure."
+  },
+  {
+    "title": "CISA StopRansomware Cybersecurity Program",
+    "url": "https://www.cisa.gov/stopransomware",
+    "publisher": "Cybersecurity and Infrastructure Security Agency",
+    "source": "cisa.gov",
+    "domain": "cybersecurity",
+    "summary": "Add CISA ransomware resilience guidance to support business cases around secure AI adoption and threat mitigation."
+  },
+  {
+    "title": "SBA Market Research for AI-Driven Small Business Planning",
+    "url": "https://www.sba.gov/business-guide/plan-your-business/market-research-competitive-analysis",
+    "publisher": "U.S. Small Business Administration",
+    "source": "sba.gov",
+    "domain": "small_business",
+    "summary": "Ingest SBA market research guidance to support AI-driven small business strategy, competitive analysis, and growth planning."
+  },
+  {
+    "title": "AI.gov National AI Strategy Portal",
+    "url": "https://www.ai.gov/",
+    "publisher": "White House",
+    "source": "ai.gov",
+    "domain": "ai_strategy",
+    "summary": "Use the national AI strategy portal to inform business cases around federal investment, responsible AI, and economic competitiveness."
+  },
+  {
+    "title": "EPA AI Compliance and Data Strategy",
+    "url": "https://www.epa.gov/data/ai-compliance-plan",
+    "publisher": "U.S. Environmental Protection Agency",
+    "source": "epa.gov",
+    "domain": "regulatory_compliance",
+    "summary": "Add EPA AI compliance planning resources to support regulatory due diligence and sustainability-aligned AI initiatives."
+  },
+  {
+    "title": "NASA Artificial Intelligence Research Page",
+    "url": "https://www.nasa.gov/artificial-intelligence",
+    "publisher": "National Aeronautics and Space Administration",
+    "source": "nasa.gov",
+    "domain": "research",
+    "summary": "Capture NASA AI research insights to support industry use cases around advanced analytics, automation, and intelligent systems."
+  },
+  {
+    "title": "FTC Business Guidance Blog",
+    "url": "https://www.ftc.gov/news-events/blogs/business-blog",
+    "publisher": "Federal Trade Commission",
+    "source": "ftc.gov",
+    "domain": "consumer_protection",
+    "summary": "Use FTC business guidance to support trustworthy AI practices, consumer protection, and brand risk management."
+  },
+  {
+    "title": "CDC Artificial Intelligence in Public Health",
+    "url": "https://www.cdc.gov/ai/index.html",
+    "publisher": "Centers for Disease Control and Prevention",
+    "source": "cdc.gov",
+    "domain": "healthcare",
+    "summary": "Include CDC AI public health insights to support business cases for healthcare AI, safety, and data-driven decision making."
+  }
+]

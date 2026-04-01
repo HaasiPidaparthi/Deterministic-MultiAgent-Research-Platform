@@ -156,6 +156,19 @@ def test_create_documents_from_files(tmp_path):
         assert document.metadata["chunk_id"] == index
 
 
+def test_add_documents_splits_long_documents(dummy_rag):
+    long_text = "word " * 500
+    document = Document(
+        page_content=long_text,
+        metadata={"title": "Long Document", "url": "https://example.com/long"},
+    )
+
+    ids = dummy_rag.add_documents([document])
+    assert len(ids) > 1
+    assert dummy_rag.get_collection_stats()["document_count"] == len(ids)
+    assert all("chunk_id" in doc.metadata for doc in dummy_rag.vectorstore.documents)
+
+
 def test_clear_collection(dummy_rag):
     dummy_rag.add_texts(["one", "two"])
     assert dummy_rag.get_collection_stats()["document_count"] == 2

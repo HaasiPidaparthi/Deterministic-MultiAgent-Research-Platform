@@ -58,8 +58,8 @@ The orchestrator includes RAG functionality to search internal knowledge bases b
 
 2. **Populate the vector database** with your documents:
    ```bash
-   # Add sample business documents (for testing)
-   python populate_rag.py --sample
+   # Add curated AI business use case sources
+   python populate_rag.py --usecases
 
    # Add local files
    python populate_rag.py --files research_docs/*.txt internal_reports/*.pdf
@@ -91,6 +91,27 @@ The orchestrator includes RAG functionality to search internal knowledge bases b
 3. **Web Search**: If insufficient results from RAG, performs web search
 4. **Evidence Integration**: Combines and deduplicates evidence from both sources
 5. **Synthesis**: Creates comprehensive brief using all available evidence
+
+## 💼 Example Use Cases: AI Business & Industry
+
+The orchestrator is designed for business and industry-focused AI research. Use the RAG pipeline to augment answers with authoritative government and non-profit knowledge sources.
+
+Example use cases:
+- **AI Governance and Trust**: Ingest federal policy guidance and AI standards for public-sector modernization and regulated-industry planning.
+- **Enterprise AI Risk Management**: Use NIST risk management guidance to support reliable AI adoption across operations and critical infrastructure.
+- **AI Resilience for Cybersecurity and Supply Chain**: Use CISA and infrastructure guidance to frame risk-aware AI deployment and supply chain resilience.
+- **AI Adoption for Small Business Intelligence**: Support market research, competitive analysis, and digital transformation recommendations for SMBs.
+- **AI Business Transformation Strategy**: Augment executive strategy with industry-readiness analysis from trusted .org sources.
+
+### Load curated AI business use case sources
+
+Run the following command to populate the RAG database with curated summaries and source links for current AI business topics:
+
+```bash
+python populate_rag.py --usecases
+```
+
+The source metadata is loaded from `data/ai_business_use_cases.json`, which contains a curated list of authoritative .org and .gov references. You can extend or update the use case list by editing that file directly.
 
 ### Testing RAG
 
@@ -202,6 +223,16 @@ Run with a custom configuration file:
 python src/engine/run_flow.py -c my_custom_config.yaml
 ```
 
+### Example Research Questions
+
+Try these business-focused prompts to generate reports:
+- "What are the top AI investment opportunities in SMB customer support automation?"
+- "How should a financial services company prioritize AI risk controls for a new regulatory reporting system?"
+- "What are the high-impact use cases for AI across manufacturing supply chain resilience?"
+- "How can a healthcare provider deploy AI safely for clinical decision support while meeting compliance requirements?"
+- "What internal capabilities and governance should an enterprise build before launching a generative AI product?"
+- "What are the market entry risks and revenue potential for an AI-driven payroll solution in North America?"
+
 ### Configuration
 
 The system uses YAML configuration files to define workflow parameters. Key configuration sections:
@@ -231,6 +262,7 @@ researcher:
   max_results_per_query: 5
   max_sources_total: 5
   min_reliability: 0.4
+  search_mode: "both"  # Options: "rag", "web", or "both"
 
 verifier:
   min_reliability_required: 0.5

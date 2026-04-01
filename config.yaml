@@ -19,6 +19,7 @@ researcher:
   max_results_per_query: 5
   max_sources_total: 5
   min_reliability: 0.4
+  search_mode: "both"
 
 # Verifier Agent Configuration
 verifier:
