@@ -12,6 +12,7 @@ import json
 import yaml
 import argparse
 from typing import Optional
+from pathlib import Path
 from dotenv import load_dotenv
 
 from langchain_groq import ChatGroq
@@ -28,6 +29,7 @@ from engine.events.sink import InMemorySink, JsonlFileSink
 from engine.reporting.run_report import make_run_paths, build_markdown_report
 from engine.reporting.dashboard import build_workflow_dashboard, make_dashboard_paths as make_dashboard_paths_dashboard
 from engine.tools.rag import RAGConfig
+from engine.evaluation.metrics import evaluate_run
 
 
 def load_config(config_path: str = "config.yaml") -> dict:
@@ -235,12 +237,13 @@ def main(config_path: str = "config.yaml", override_question: Optional[str] = No
     # --- Run ---
     question = config["question"]
     state = {
-        "question": question, 
-        "budget_usd": config["budget_usd"], 
-        "time_limit_s": config["time_limit_seconds"],
+        "question": question,
+        "budget_usd": float(config.get("budget_usd", 0.0)),
+        "time_limit_s": int(config.get("time_limit_seconds", 0)),
         "iter": 0,
         "researcher_overrides": {},  # start with no overrides
-        "synthesizer_mode": config["workflow"]["synthesizer_mode"],  # start in configured mode
+        "synthesizer_mode": config.get("workflow", {}).get("synthesizer_mode", "normal"),
+        "workflow": config.get("workflow", {}),
     }
 
     out = app.invoke(state, config={"configurable": {"emitter": emitter}})
@@ -286,6 +289,36 @@ def main(config_path: str = "config.yaml", override_question: Optional[str] = No
     )
     dashboard_paths.dashboard_html.write_text(dashboard_html, encoding="utf-8")
 
+    # --- Evaluation integration ---
+    eval_cfg = config.get("evaluation", {})
+    evaluation_result = None
+    if eval_cfg.get("enabled", False):
+        evaluation_output_dir = Path(eval_cfg.get("output_dir", "out/evaluation_runs"))
+        evaluation_output_dir.mkdir(parents=True, exist_ok=True)
+
+        expected_aspects = eval_cfg.get("expected_aspects", [])
+        difficulty = eval_cfg.get("difficulty", "unspecified")
+        category = eval_cfg.get("category", "unspecified")
+
+        try:
+            evaluation_result = evaluate_run(
+                run_id=run_id,
+                question=question,
+                difficulty=difficulty,
+                category=category,
+                brief=out.get("brief"),
+                evidence=out.get("evidence", []),
+                metrics=out.get("metrics", {}),
+                expected_aspects=expected_aspects,
+                passed_verification=getattr(out.get("report"), "passed", False),
+            )
+
+            eval_file = evaluation_output_dir / f"evaluation_{run_id}.json"
+            eval_file.write_text(json.dumps(evaluation_result.to_dict(), indent=2), encoding="utf-8")
+            print(f"Saved evaluation: {eval_file}")
+
+        except Exception as e:
+            print(f"WARNING: Evaluation failed: {e}")
 
     # --- Output ---
     _print_plan(out["plan"])

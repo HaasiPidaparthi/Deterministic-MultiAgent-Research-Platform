@@ -1,11 +1,13 @@
 from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
 from langchain_core.messages import AIMessage
+from langgraph.graph import END
 
 from engine.agents.planner import PlannerAgent
 from engine.agents.researcher import ResearcherAgent, ResearcherConfig
 from engine.graph.flow_loop import build_graph
 from engine.graph.nodes import researcher_node
 from engine.schemas.evidence import EvidenceItem
+
 
 PLAN_JSON = """
 {
@@ -48,6 +50,20 @@ def test_planner_researcher_flow_unit():
     assert "plan" in out
     assert "evidence" in out
     assert len(out["evidence"]) >= 1
+
+
+def test_loop_route_respects_max_iterations():
+    from engine.graph.flow_loop import _route
+
+    state = {
+        "iter": 5,
+        "workflow": {"max_iterations": 5},
+        "metrics": {"elapsed_s": 0.0, "cost_usd": 0.0},
+        "report": None,
+    }
+    next_step = _route(state)
+    assert next_step == END
+    assert state["stop_reason"] == "max_iters"
 
 
 def test_researcher_node_refetch_keeps_low_existing_evidence():

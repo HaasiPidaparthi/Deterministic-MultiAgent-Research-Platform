@@ -3,7 +3,9 @@ from typing import Any, Dict
 # TODO: placeholder pricing
 MODEL_PRICING = {
     # model: (usd_per_1k_input, usd_per_1k_output)
-    "llama-3.1-70b-versatile": (0.0, 0.0),  # put real values for accurate $$
+    "llama-3.1-70b-versatile": (0.02, 0.02),  # realistic cost estimates, adjust to provider values
+    "llama-3.3-70b-versatile": (0.025, 0.025),
+    "gpt-4o-mini": (0.03, 0.03),
 }
 
 def extract_token_usage(msg: Any) -> tuple[int, int]:

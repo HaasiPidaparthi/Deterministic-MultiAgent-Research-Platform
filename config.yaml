@@ -29,3 +29,11 @@ verifier:
 workflow:
   max_iterations: 5  # Maximum number of workflow iterations
   synthesizer_mode: "normal"  # normal or strict mode for synthesis
+
+# Evaluation Settings
+evaluation:
+  enabled: true
+  output_dir: "out/evaluation_runs"
+  difficulty: "auto"
+  category: "auto"
+  expected_aspects: []

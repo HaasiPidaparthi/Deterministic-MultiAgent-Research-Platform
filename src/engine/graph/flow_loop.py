@@ -15,7 +15,10 @@ from engine.agents.verifier import VerifierAgent
 from engine.metrics.run_metrics import init_metrics
 
 def _route(state: WorkflowState) -> str:
-    nxt = decide_next_step(state, cfg=LoopConfig(max_iters=3))
+    workflow_cfg = state.get("workflow", {}) or {}
+    max_iters = int(workflow_cfg.get("max_iterations", 3))
+
+    nxt = decide_next_step(state, cfg=LoopConfig(max_iters=max_iters))
     if nxt == "end":
         return END
     return nxt
